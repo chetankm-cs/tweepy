@@ -86,7 +86,7 @@ class Stream(object):
         self.api = API()
         self.headers = options.get("headers") or {}
         self.parameters = None
-        self.body = None
+        self.body = ''
 
     def _run(self):
         # Authenticate
@@ -102,11 +102,7 @@ class Stream(object):
                 # quit if error count greater than retry count
                 break
             try:
-                if self.body:
-                    method = 'POST'
-                else:
-                    method = 'GET'
-                self.auth.apply_auth(url, method, self.headers, self.parameters)
+                self.auth.apply_auth(url, 'POST', self.headers, self.parameters)
                 req = urllib2.Request(url, data = self.body, headers = self.headers)
                 
                 if sys.version_info >= (2, 6, 0):
