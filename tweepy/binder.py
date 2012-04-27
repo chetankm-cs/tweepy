@@ -6,6 +6,8 @@ import httplib
 import urllib
 import time
 import re
+import gzip
+import StringIO
 
 from urllib2 import Request, URLError, HTTPError, urlopen
 
@@ -166,8 +168,12 @@ def bind_api(**config):
                     raise TweepError('Failed to send request: %s' % e)
 
             # Parse the response payload
-            self.api.last_response = resp
-            result = self.api.parser.parse(self, resp.read())
+            content = resp.read()
+            if resp.info().get('Content-Encoding', '').strip().lower() == 'gzip':
+                sf = StringIO.StringIO(content)
+                content = gzip.GzipFile(fileobj=sf).read()
+
+            result = self.api.parser.parse(self, content)
 
             # Store result into cache if one is available.
             if self.use_cache and self.api.cache and self.method == 'GET' and result:
