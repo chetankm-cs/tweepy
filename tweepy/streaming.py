@@ -7,6 +7,7 @@ import httplib
 from socket import timeout
 from threading import Thread
 from time import sleep
+from time import clock
 import urllib
 import urllib2
 
@@ -142,15 +143,28 @@ class Stream(object):
             raise exception
 
     def _read_loop(self, resp):
+        last_clk = clock()
+        timeout_count = 0
+
         while self.running:
             # read length
             data = ''
             while True:
                 c = resp.read(1)
-                if c == '\n':
+                if not c or c == '\n':
                     break
                 data += c
             data = data.strip()
+
+            if not data:
+                clk = clock()
+                if clk - last_clk < 1:
+                    timeout_count += 1
+                    if timeout_count > 10:
+                        # Disconnected
+                        break
+                last_clk = clk
+                continue
 
             # read data and pass into listener
             if self.listener.on_data(data) is False:
