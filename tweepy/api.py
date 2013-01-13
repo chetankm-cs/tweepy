@@ -110,6 +110,14 @@ class API(object):
         require_auth = True
     )
 
+    """ statuses/retweeted_by_user """
+    retweeted_by_user = bind_api(
+        path = '/statuses/retweeted_by_user.json',
+        payload_type = 'status', payload_list = True,
+        allowed_param = ['screen_name', 'id', 'since_id', 'max_id', 'count', 'page', 'trim_user', 'include_entities'],
+        require_auth = False
+    )
+
     """ statuses/retweets_of_me """
     retweets_of_me = bind_api(
         path = '/statuses/retweets_of_me.json',
@@ -187,6 +195,30 @@ class API(object):
         payload_type = 'user', payload_list = True,
         require_auth = True,
         allowed_param = ['q', 'per_page', 'page']
+    )
+
+    """ users/suggestions/:slug """
+    suggested_users = bind_api(
+        path = '/users/suggestions/{slug}.json',
+        payload_type = 'user', payload_list = True,
+        require_auth = True,
+        allowed_param = ['slug', 'lang']
+    )
+
+    """ users/suggestions """
+    suggested_categories = bind_api(
+        path = '/users/suggestions.json',
+        payload_type = 'category', payload_list = True,
+        allowed_param = ['lang'],
+        require_auth = True
+    )
+
+    """ users/suggestions/:slug/members """
+    suggested_users_tweets = bind_api(
+        path = '/users/suggestions/{slug}/members.json',
+        payload_type = 'status', payload_list = True,
+        allowed_param = ['slug'],
+        require_auth = True
     )
 
     """ statuses/friends """
@@ -676,19 +708,6 @@ class API(object):
     )
     search.pagination_mode = 'page'
 
-    """ trends """
-    trends = bind_api(
-        path = '/trends.json',
-        payload_type = 'json'
-    )
-
-    """ trends/current """
-    trends_current = bind_api(
-        path = '/trends/current.json',
-        payload_type = 'json',
-        allowed_param = ['exclude']
-    )
-
     """ trends/daily """
     trends_daily = bind_api(
         path = '/trends/daily.json',
@@ -706,7 +725,7 @@ class API(object):
     """ geo/reverse_geocode """
     reverse_geocode = bind_api(
         path = '/geo/reverse_geocode.json',
-        payload_type = 'json',
+        payload_type = 'place', payload_list = True,
         allowed_param = ['lat', 'long', 'accuracy', 'granularity', 'max_results']
     )
 
@@ -714,22 +733,29 @@ class API(object):
     # listed as deprecated on twitter's API documents
     nearby_places = bind_api(
         path = '/geo/nearby_places.json',
-        payload_type = 'json',
+        payload_type = 'place', payload_list = True,
         allowed_param = ['lat', 'long', 'ip', 'accuracy', 'granularity', 'max_results']
     )
 
     """ geo/id """
     geo_id = bind_api(
         path = '/geo/id/{id}.json',
-        payload_type = 'json',
+        payload_type = 'place',
         allowed_param = ['id']
     )
 
     """ geo/search """
     geo_search = bind_api(
         path = '/geo/search.json',
-        payload_type = 'json',
+        payload_type = 'place', payload_list = True,
         allowed_param = ['lat', 'long', 'query', 'ip', 'granularity', 'accuracy', 'max_results', 'contained_within']
+    )
+
+    """ geo/similar_places """
+    geo_similar_places = bind_api(
+        path = '/geo/similar_places.json',
+        payload_type = 'place', payload_list = True,
+        allowed_param = ['lat', 'long', 'name', 'contained_within']
     )
 
     """ Internal use only """

@@ -8,15 +8,28 @@ from tweepy import (API, BasicAuthHandler, OAuthHandler, Friendship, Cursor,
 
 """Configurations"""
 # Must supply twitter account credentials for tests
-username = ''
-password = ''
-oauth_consumer_key = ''
-oauth_consumer_secret = ''
-oauth_token=''
-oauth_token_secret=''
+username = os.environ.get('TWITTER_USERNAME', '')
+oauth_consumer_key = os.environ.get('CONSUMER_KEY', '')
+oauth_consumer_secret = os.environ.get('CONSUMER_SECRET', '')
+oauth_token = os.environ.get('ACCESS_KEY', '')
+oauth_token_secret = os.environ.get('ACCESS_SECRET', '')
+
+test_tweet_id = '266367358078169089'
 
 """Unit tests"""
 
+class TweepyErrorTests(unittest.TestCase):
+
+    def testpickle(self):
+        """Verify exceptions can be pickled and unpickled."""
+        import pickle
+        from tweepy.error import TweepError
+
+        e = TweepError('no reason', {'status': 200})
+        e2 = pickle.loads(pickle.dumps(e))
+
+        self.assertEqual(e.reason, e2.reason)
+        self.assertEqual(e.response, e2.response)
 
 class TweepyAPITests(unittest.TestCase):
 
@@ -53,14 +66,14 @@ class TweepyAPITests(unittest.TestCase):
         self.api.retweets_of_me()
 
     def testretweet(self):
-        s = self.api.retweet(123)
+        s = self.api.retweet(test_tweet_id)
         s.destroy()
 
     def testretweets(self):
-        self.api.retweets(123)
+        self.api.retweets(test_tweet_id)
 
     def testgetstatus(self):
-        self.api.get_status(id=123)
+        self.api.get_status(id=test_tweet_id)
 
     def testupdateanddestroystatus(self):
         # test update
@@ -81,6 +94,19 @@ class TweepyAPITests(unittest.TestCase):
 
     def testsearchusers(self):
         self.api.search_users('twitter')
+
+    def testsuggestedcategories(self):
+        self.api.suggested_categories()
+
+    def testsuggestedusers(self):
+        categories = self.api.suggested_categories()
+        if len(categories) != 0:
+            self.api.suggested_users(categories[0].slug)
+
+    def testsuggesteduserstweets(self):
+        categories = self.api.suggested_categories()
+        if len(categories) != 0:
+            self.api.suggested_users_tweets(categories[0].slug)
 
     def testme(self):
         me = self.api.me()
@@ -115,11 +141,13 @@ class TweepyAPITests(unittest.TestCase):
     def testcreatedestroyfriendship(self):
         enemy = self.api.destroy_friendship('twitter')
         self.assertEqual(enemy.screen_name, 'twitter')
-        self.assertFalse(self.api.exists_friendship(username, 'twitter'))
+
+        # Wait 5 seconds to allow Twitter time
+        # to process the friendship destroy request.
+        sleep(5)
 
         friend = self.api.create_friendship('twitter')
         self.assertEqual(friend.screen_name, 'twitter')
-        self.assertTrue(self.api.exists_friendship(username, 'twitter'))
 
     def testshowfriendship(self):
         source, target = self.api.show_friendship(target_screen_name='twtiter')
@@ -143,15 +171,14 @@ class TweepyAPITests(unittest.TestCase):
         me = self.api.verify_credentials(skip_status=True)
         self.assertFalse(hasattr(me, 'status'))
 
-        api = API(BasicAuthHandler('bad', 'password'))
-        self.assertEqual(api.verify_credentials(), False)
-
     def testratelimitstatus(self):
         self.api.rate_limit_status()
 
+    """ TODO(josh): Remove once this deprecated API is gone.
     def testsetdeliverydevice(self):
         self.api.set_delivery_device('im')
         self.api.set_delivery_device('none')
+    """
 
     def testupdateprofilecolors(self):
         original = self.api.me()
@@ -276,15 +303,23 @@ class TweepyAPITests(unittest.TestCase):
         self.api.search('tweepy')
 
     def testtrends(self):
-        self.api.trends()
-        self.api.trends_current()
         self.api.trends_daily()
         self.api.trends_weekly()
 
     def testgeoapis(self):
-        self.api.geo_id(id='c3f37afa9efcf94b') # Austin, TX, USA
-        self.api.nearby_places(lat=30.267370168467806, long=-97.74261474609375) # Austin, TX, USA
-        self.api.reverse_geocode(lat=30.267370168467806, long=-97.74261474609375) # Austin, TX, USA
+        def place_name_in_list(place_name, place_list):
+            """Return True if a given place_name is in place_list."""
+            return any([x.full_name.lower() == place_name.lower() for x in place_list])
+
+        twitter_hq = self.api.geo_similar_places(lat=37, long= -122, name='Twitter HQ')
+        # Assumes that twitter_hq is first Place returned...
+        self.assertEqual(twitter_hq[0].id, '3bdf30ed8b201f31')
+        # Test various API functions using Austin, TX, USA
+        self.assertEqual(self.api.geo_id(id='c3f37afa9efcf94b').full_name, 'Austin, TX')
+        self.assertTrue(place_name_in_list('Austin, TX',
+            self.api.nearby_places(lat=30.267370168467806, long= -97.74261474609375))) # Austin, TX, USA
+        self.assertTrue(place_name_in_list('Austin, TX',
+            self.api.reverse_geocode(lat=30.267370168467806, long= -97.74261474609375))) # Austin, TX, USA
 
 class TweepyCursorTests(unittest.TestCase):
 
@@ -339,14 +374,6 @@ class TweepyAuthTests(unittest.TestCase):
         # build api object test using oauth
         api = API(auth)
         s = api.update_status('test %i' % random.randint(0, 1000))
-        api.destroy_status(s.id)
-
-    def testbasicauth(self):
-        auth = BasicAuthHandler(username, password)
-
-        # test accessing twitter API
-        api = API(auth)
-        s = api.update_status('test %i' % random.randint(1, 1000))
         api.destroy_status(s.id)
 
 

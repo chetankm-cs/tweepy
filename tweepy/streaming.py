@@ -140,7 +140,11 @@ class Stream(object):
         self.running = False
 
         if exception:
-            raise exception
+            raise
+
+    def _data(self, data):
+        if self.listener.on_data(data) is False:
+            self.running = False
 
     def _read_loop(self, resp):
         last_clk = clock()
@@ -210,7 +214,8 @@ class Stream(object):
             self.url += '&count=%s' % count
         self._start(async)
 
-    def filter(self, follow=None, track=None, async=False, locations=None, count = None):
+    def filter(self, follow=None, track=None, async=False, locations=None, 
+        count = None, stall_warnings=False):
         self.parameters = {}
         self.headers['Content-type'] = "application/x-www-form-urlencoded"
         if self.running:
@@ -225,6 +230,8 @@ class Stream(object):
             self.parameters['locations'] = ','.join(['%.2f' % l for l in locations])
         if count:
             self.parameters['count'] = count
+        if stall_warnings:
+            self.parameters['stall_warnings'] = stall_warnings
         self.body = urlencode_noplus(self.parameters)
         self.parameters['delimited'] = 'length'
         self._start(async)
